@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:16
+    container_name: ttc_db
+    environment:
+      POSTGRES_DB: ttc
+      POSTGRES_USER: ttc
+      POSTGRES_PASSWORD: ttc
+      TZ: America/Toronto
+    ports:
+      - "5433:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./data/processed:/import:ro
+
+volumes:
+  dbdata:
