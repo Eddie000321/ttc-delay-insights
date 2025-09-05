@@ -107,15 +107,18 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
         "east": "E",
         "west": "W",
         "none": None,
+        "n": "N",
+        "s": "S",
+        "e": "E",
+        "w": "W",
     }
-    df["bound"] = (
-        df["bound"]
-        .astype("string")
-        .str.strip()
-        .str.lower()
-        .map(bound_map)
-        .fillna(df["bound"])
-    )
+    # Normalize bound strictly to {N,E,S,W} or NA (so DB CHECK passes)
+    orig_bound = df["bound"].astype("string").str.strip()
+    lower = orig_bound.str.lower()
+    mapped = lower.map(bound_map)
+    # Fallback: if original is already a single letter like 'N','E','S','W'
+    fallback_letter = orig_bound.str.upper().where(orig_bound.str.upper().isin(["N", "E", "S", "W"]))
+    df["bound"] = mapped.fillna(fallback_letter)
 
     # Numeric coercion for durations
     for col in ["min_delay", "min_gap", "vehicle"]:
