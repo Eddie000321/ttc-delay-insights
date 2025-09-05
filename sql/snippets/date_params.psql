@@ -1,0 +1,7 @@
+-- Default date parameters (psql include)
+-- Usage:
+--   psql ... -f sql/snippets/date_params.psql -f sql/reporting/monthly_by_mode.sql
+
+\set from '2024-01-01'
+\set to   '2024-12-31'
+
