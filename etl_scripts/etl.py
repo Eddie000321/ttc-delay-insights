@@ -152,7 +152,18 @@ def _load_code_descriptions(dir_path: Path) -> Optional[pd.DataFrame]:
 
 def _gather_files(root: Path) -> List[Path]:
     exts = {".csv", ".xlsx", ".xls"}
-    return sorted([p for p in root.glob("*.*") if p.suffix.lower() in exts])
+    files = []
+    for p in root.glob("*.*"):
+        if p.suffix.lower() not in exts:
+            continue
+        name_l = p.name.lower()
+        # Skip meta files that should not be ingested as data rows
+        if name_l == "code descriptions.csv":
+            continue
+        if "readme" in name_l:
+            continue
+        files.append(p)
+    return sorted(files)
 
 
 def process_mode(dir_path: Path, source: str, codes_df: Optional[pd.DataFrame]) -> pd.DataFrame:

@@ -1,0 +1,18 @@
+# OS / editor
+.DS_Store
+.venv/
+*.log
+
+# Data (keep repo slim)
+data/raw/**
+data/processed/**
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+# Allow small samples if desired
+!data/raw/sample/**
+!data/processed/sample/**
+
+# Python cache
+__pycache__/
+*.pyc
+
