@@ -141,7 +141,7 @@ Future: Python Visualizations (Matplotlib/Pandas)
 
 License & Attribution
 
-- Data: Toronto Open Data Portal (TTC delays). Please attribute TTC/Open Data as required.
+- Data: Toronto Open Data Portal (TTC delays).
 
 <!--
 Portfolio Roles (hidden for portfolio use):
