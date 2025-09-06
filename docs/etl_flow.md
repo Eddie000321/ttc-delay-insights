@@ -28,7 +28,9 @@ This document outlines the Extract, Transform, Load (ETL) pipeline and the exact
 - Load: `COPY` from `/import/ttc_delays.csv` (see `db/init/002_import.sql`)
 - Constraints: `NOT NULL (date, station, source)`; `CHECK` on non-negative delays and bound category
 - Indexes: `(date)`, `(line)`, `(station)`, `(source, date)` (see `db/init/003_indexes.sql`)
-- Additional: materialized views – not implemented (future work)
+- Additional: materialized view `mv_monthly_counts` and refresh script are provided.
+  - Create (first time): `psql -h localhost -p 5433 -U ttc -d ttc -f sql/materialized/mv_monthly_counts.sql`
+  - Refresh: `psql -h localhost -p 5433 -U ttc -d ttc -f sql/materialized/refresh.sql`
 
 ## Tools
 
