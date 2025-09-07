@@ -16,3 +16,5 @@ data/processed/**
 __pycache__/
 *.pyc
 
+# Local interview notes (do not commit)
+docs/interview_design_story.md

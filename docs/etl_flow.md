@@ -43,3 +43,9 @@ This document outlines the Extract, Transform, Load (ETL) pipeline and the exact
 - Script: `etl_scripts/validate.py`
 - Checks required columns, nulls, value ranges, categories, and duplicate candidates
 - Database constraints will reject invalid rows on load; fix issues in ETL before loading.
+
+## Code Dictionaries (per mode)
+
+- ETL emits per-mode code dictionaries: `data/processed/codes_subway.csv`, `codes_streetcar.csv`, `codes_bus.csv` (when available) and a unified `codes_all.csv`.
+- Database table `ttc_code_dictionary` ingests `codes_all.csv` via `db/init/005_import_code_dictionary.sql`.
+- Use view `vw_delays_with_desc` to access a resolved description (prefers dictionary; falls back to fact `description`).

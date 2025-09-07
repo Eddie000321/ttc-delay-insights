@@ -79,6 +79,7 @@ Data Model
   - Schema: `db/init/001_schema.sql`
   - Import (COPY): `db/init/002_import.sql`
   - Indexes: `db/init/003_indexes.sql`
+  - Code dictionary (per mode): `db/init/004_code_dictionary.sql`, `db/init/005_import_code_dictionary.sql`
 
 SQL Usage
 
@@ -88,6 +89,7 @@ SQL Usage
   - Monthly by mode: `sql/reporting/monthly_by_mode.sql`
 - Views / Materialized views:
   - Logical view (daily counts): `sql/views/vw_daily_counts.sql`
+  - Delays with resolved description: `sql/views/vw_delays_with_desc.sql`
   - Materialized monthly counts (+ refresh): `sql/materialized/mv_monthly_counts.sql`, `sql/materialized/refresh.sql`
 - Common psql params include: `sql/snippets/date_params.psql`
 - Folder overview: `sql/README.md`
@@ -138,6 +140,17 @@ Future: Python Visualizations (Matplotlib/Pandas)
   plt.show()
   ```
 - Potential charts: monthly counts by mode; top stations bar chart; cause distribution; peak‑hour histograms
+
+Generate Figures (script)
+
+- Run: `python analysis/visualize.py --mode subway --year 2024`
+- Defaults: reads `data/processed/ttc_delays.csv`, writes PNGs to `reports/figures/`
+- Outputs:
+  - `monthly_by_mode.png`
+  - `top_stations_<mode>_<year>.png`
+  - `causes_<mode>_<year>.png`
+  - `peak_hour_<mode>_<year>.png`
+  - `delay_hist_<mode>_<year>.png`
 
 License & Attribution
 

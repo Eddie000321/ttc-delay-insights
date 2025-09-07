@@ -137,17 +137,27 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
 
 
 def _load_code_descriptions(dir_path: Path) -> Optional[pd.DataFrame]:
-    """Load `Code Descriptions.csv` if present, returning a frame with columns [code, description]."""
-    candidate = dir_path / "Code Descriptions.csv"
-    if not candidate.exists():
+    """Load a mode-specific code description file if present.
+
+    Tries a few common filenames, returns columns [code, description].
+    """
+    candidates = [
+        dir_path / "Code Descriptions.csv",
+        dir_path / "code_descriptions.csv",
+        dir_path / "codes.csv",
+    ]
+    candidate = next((p for p in candidates if p.exists()), None)
+    if candidate is None:
         return None
     df = pd.read_csv(candidate)
-    df = _coalesce_columns(df, {"code": ["CODE", "Code"], "description": ["DESCRIPTION", "Description"]})
+    df = _coalesce_columns(df, {"code": ["CODE", "Code", "code"], "description": ["DESCRIPTION", "Description", "desc", "Desc"]})
     for col in ["code", "description"]:
         if col not in df.columns:
             return None
     df["code"] = df["code"].astype("string").str.strip()
-    return df[["code", "description"]]
+    df["description"] = df["description"].astype("string").str.strip()
+    df = df[["code", "description"]].dropna(subset=["code"]).drop_duplicates()
+    return df
 
 
 def _gather_files(root: Path) -> List[Path]:
@@ -193,10 +203,11 @@ def main() -> None:
 
     subway_codes = _load_code_descriptions(RAW_SUBWAY)
     streetcar_codes = _load_code_descriptions(RAW_STREETCAR)
+    bus_codes = _load_code_descriptions(RAW_BUS)
 
     subway_df = process_mode(RAW_SUBWAY, "subway", subway_codes)
     streetcar_df = process_mode(RAW_STREETCAR, "streetcar", streetcar_codes)
-    bus_df = process_mode(RAW_BUS, "bus", None)
+    bus_df = process_mode(RAW_BUS, "bus", bus_codes)
 
     # Write per-mode
     subway_out = PROCESSED_DIR / "subway_delays.csv"
@@ -216,6 +227,35 @@ def main() -> None:
     print(f"Wrote: {streetcar_out}")
     print(f"Wrote: {bus_out}")
     print(f"Wrote: {unified_out}")
+
+    # Code dictionaries per mode + unified
+    code_parts = []
+    if subway_codes is not None and not subway_codes.empty:
+        sc = subway_codes.copy()
+        sc["source"] = "subway"
+        sc_out = PROCESSED_DIR / "codes_subway.csv"
+        sc[["source", "code", "description"]].drop_duplicates(["source", "code"]).to_csv(sc_out, index=False)
+        print(f"Wrote: {sc_out}")
+        code_parts.append(sc[["source", "code", "description"]])
+    if streetcar_codes is not None and not streetcar_codes.empty:
+        st = streetcar_codes.copy()
+        st["source"] = "streetcar"
+        st_out = PROCESSED_DIR / "codes_streetcar.csv"
+        st[["source", "code", "description"]].drop_duplicates(["source", "code"]).to_csv(st_out, index=False)
+        print(f"Wrote: {st_out}")
+        code_parts.append(st[["source", "code", "description"]])
+    if bus_codes is not None and not bus_codes.empty:
+        bs = bus_codes.copy()
+        bs["source"] = "bus"
+        bs_out = PROCESSED_DIR / "codes_bus.csv"
+        bs[["source", "code", "description"]].drop_duplicates(["source", "code"]).to_csv(bs_out, index=False)
+        print(f"Wrote: {bs_out}")
+        code_parts.append(bs[["source", "code", "description"]])
+    if code_parts:
+        all_codes = pd.concat(code_parts, ignore_index=True).drop_duplicates(["source", "code"])
+        all_out = PROCESSED_DIR / "codes_all.csv"
+        all_codes.to_csv(all_out, index=False)
+        print(f"Wrote: {all_out}")
 
 
 if __name__ == "__main__":
