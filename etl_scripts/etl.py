@@ -136,21 +136,72 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
     return df[STANDARD_COLS]
 
 
-def _load_code_descriptions(dir_path: Path) -> Optional[pd.DataFrame]:
-    """Load a mode-specific code description file if present.
-
-    Tries a few common filenames, returns columns [code, description].
-    """
-    candidates = [
+def _find_code_desc_file(dir_path: Path) -> Optional[Path]:
+    """Find a plausible code-description file in a raw mode directory."""
+    # Hard-coded common names first (highest priority)
+    preferred = [
         dir_path / "Code Descriptions.csv",
         dir_path / "code_descriptions.csv",
         dir_path / "codes.csv",
+        dir_path / "code_description.csv",
     ]
-    candidate = next((p for p in candidates if p.exists()), None)
-    if candidate is None:
+    for p in preferred:
+        if p.exists():
+            return p
+    # Fallback: scan for files that look like code-description lists
+    for p in dir_path.glob("*.*"):
+        name = p.name.lower()
+        if p.suffix.lower() not in {".csv", ".xlsx", ".xls"}:
+            continue
+        if "readme" in name:
+            continue
+        if ("code" in name and "desc" in name) or ("code" in name and "meaning" in name):
+            return p
+    return None
+
+
+def _read_table_any(path: Path) -> pd.DataFrame:
+    if path.suffix.lower() == ".csv":
+        return pd.read_csv(path)
+    return pd.read_excel(path)
+
+
+def _load_code_descriptions(dir_path: Path) -> Optional[pd.DataFrame]:
+    """Load a mode-specific code description file if present.
+
+    Tries multiple filenames and formats, returns columns [code, description].
+    """
+    f = _find_code_desc_file(dir_path)
+    if f is None:
         return None
-    df = pd.read_csv(candidate)
-    df = _coalesce_columns(df, {"code": ["CODE", "Code", "code"], "description": ["DESCRIPTION", "Description", "desc", "Desc"]})
+    try:
+        df = _read_table_any(f)
+    except Exception:
+        return None
+    df = _coalesce_columns(
+        df,
+        {
+            "code": [
+                "CODE",
+                "Code",
+                "code",
+                "Delay Code",
+                "DelayCode",
+                "Reason Code",
+                "Cause Code",
+            ],
+            "description": [
+                "DESCRIPTION",
+                "Description",
+                "desc",
+                "Desc",
+                "Reason",
+                "Cause",
+                "Details",
+                "Meaning",
+            ],
+        },
+    )
     for col in ["code", "description"]:
         if col not in df.columns:
             return None

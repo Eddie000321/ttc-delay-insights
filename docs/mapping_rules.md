@@ -17,9 +17,9 @@ This document describes how raw datasets were mapped into the unified schema.
 
 ## Source Mapping
 
-- Subway files → `source = 'subway'`
-- Streetcar files → `source = 'streetcar'`
-- Bus files → `source = 'bus'`
+- Subway files → subway dataset (stored in `ttc_delays_subway`)
+- Streetcar files → streetcar dataset (stored in `ttc_delays_streetcar`)
+- Bus files → bus dataset (stored in `ttc_delays_bus`)
 
 ## Transformation Rules
 
@@ -29,9 +29,9 @@ This document describes how raw datasets were mapped into the unified schema.
 - Numeric fields coerced with `to_numeric(errors='coerce')`; invalids become NULL (0으로 대체하지 않음)
 - Codes trimmed (whitespace); case normalization may be applied later
 - Vehicle identifiers stored as numeric when applicable
-- Code descriptions: Per-mode code dictionaries are loaded when available and joined on `code` during ETL. Dictionaries differ by mode; the same `code` token can mean different things per mode.
-  - ETL writes `data/processed/codes_<mode>.csv` and a unified `codes_all.csv` with columns `(source, code, description)`.
-  - The database loads these into `ttc_code_dictionary (source, code, description)`; prefer joining to this table for authoritative descriptions.
+- Code descriptions: Per-mode code dictionaries are loaded when available and joined on `code` at query time via split views. The same `code` token can mean different things per mode.
+  - ETL writes `data/processed/codes_<mode>.csv` (and a unified `codes_all.csv` for compatibility).
+  - The database loads these into `ttc_code_dictionary_subway|streetcar|bus`; prefer joining per mode for authoritative descriptions.
 
 ## Validation
 

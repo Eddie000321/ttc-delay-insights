@@ -52,6 +52,34 @@ def _load_csv(csv_path: Path) -> pd.DataFrame:
     return df
 
 
+def _load_data_flexible(processed_root: Path) -> pd.DataFrame:
+    """Load data from unified CSV if present, otherwise concat per-mode CSVs.
+
+    Ensures a `source` column exists for downstream grouping/plotting.
+    """
+    unified = processed_root / "ttc_delays.csv"
+    if unified.exists():
+        df = pd.read_csv(unified)
+        # Guarantee source column even in older outputs
+        if "source" not in df.columns:
+            # Infer from raw_file if possible, else leave empty
+            df["source"] = pd.NA
+        return df
+    # Fallback: per-mode
+    frames = []
+    for mode, name in [("subway", "subway_delays.csv"), ("streetcar", "streetcar_delays.csv"), ("bus", "bus_delays.csv")]:
+        p = processed_root / name
+        if not p.exists():
+            continue
+        f = pd.read_csv(p)
+        if "source" not in f.columns:
+            f["source"] = mode
+        frames.append(f)
+    if not frames:
+        raise FileNotFoundError("No processed CSVs found. Run etl_scripts/etl.py first.")
+    return pd.concat(frames, ignore_index=True)
+
+
 def _pick_year(df: pd.DataFrame) -> int:
     if "date" not in df.columns or df["date"].isna().all():
         # Fallback: current year if dates missing
@@ -111,18 +139,122 @@ def fig_top_stations(df: pd.DataFrame, out_dir: Path, mode: str, year: int, topn
     return out_path
 
 
-def fig_causes(df: pd.DataFrame, out_dir: Path, mode: str, year: int, topn: int = 20) -> Optional[Path]:
+def _load_code_dict(dict_csv: Path) -> Optional[pd.DataFrame]:
+    if not dict_csv.exists():
+        return None
+    df = pd.read_csv(dict_csv)
+    # Expect columns: source, code, description
+    needed = {"source", "code", "description"}
+    if not needed.issubset(set(df.columns)):
+        return None
+    # Normalize
+    for c in ["source", "code", "description"]:
+        df[c] = df[c].astype("string").str.strip()
+    return df.dropna(subset=["source", "code"]).drop_duplicates(["source", "code"])
+
+
+def _load_code_dict_fallback(raw_root: Path = Path("data/raw")) -> Optional[pd.DataFrame]:
+    """Build a dictionary by reading per-mode raw folders directly when unified file is missing.
+
+    Looks for common filenames and flexible column names (CSV/Excel)."""
+    import pandas as pd
+    modes = {
+        "subway": raw_root / "raw_subway",
+        "streetcar": raw_root / "raw_streetcar",
+        "bus": raw_root / "raw_bus",
+    }
+    parts = []
+    for mode, d in modes.items():
+        if not d.exists():
+            continue
+        # Try multiple candidates
+        cands = [
+            d / "Code Descriptions.csv",
+            d / "code_descriptions.csv",
+            d / "codes.csv",
+            d / "code_description.csv",
+        ]
+        # Heuristic scan
+        for p in list(cands) + list(d.glob("*.*")):
+            if not p.exists():
+                continue
+            if p.suffix.lower() not in {".csv", ".xlsx", ".xls"}:
+                continue
+            name = p.name.lower()
+            if "readme" in name:
+                continue
+            if ("code" not in name) or ("desc" not in name and "meaning" not in name and p.name not in {"codes.csv", "codes.xlsx"}):
+                # must at least look like a code list
+                continue
+            try:
+                df = pd.read_csv(p) if p.suffix.lower() == ".csv" else pd.read_excel(p)
+            except Exception:
+                continue
+            # Coalesce columns
+            cols = {c.lower(): c for c in df.columns}
+            def pick(names):
+                for n in names:
+                    if n.lower() in cols:
+                        return cols[n.lower()]
+                return None
+            code_col = pick(["CODE", "Code", "code", "Delay Code", "DelayCode", "Reason Code", "Cause Code"]) 
+            desc_col = pick(["DESCRIPTION", "Description", "desc", "Desc", "Reason", "Cause", "Details", "Meaning"]) 
+            if not code_col or not desc_col:
+                continue
+            df = df[[code_col, desc_col]].rename(columns={code_col: "code", desc_col: "description"})
+            df["code"] = df["code"].astype("string").str.strip()
+            df["description"] = df["description"].astype("string").str.strip()
+            df = df.dropna(subset=["code"]).drop_duplicates()
+            if not df.empty:
+                df.insert(0, "source", mode)
+                parts.append(df[["source", "code", "description"]])
+                break  # one good file per mode is enough
+    if not parts:
+        return None
+    out = pd.concat(parts, ignore_index=True)
+    return out.drop_duplicates(["source", "code"])
+
+
+def fig_causes(
+    df: pd.DataFrame,
+    out_dir: Path,
+    mode: str,
+    year: int,
+    topn: int = 20,
+    dict_df: Optional[pd.DataFrame] = None,
+) -> Optional[Path]:
     if "code" not in df.columns:
         return None
     tmp = _filter(df, mode, year)
     if tmp.empty:
         return None
     codes = tmp["code"].fillna("UNKNOWN")
-    top = codes.groupby(codes).size().sort_values(ascending=False).head(topn)
-    ax = top.sort_values().plot(kind="barh", figsize=(10, 6))
+    counts = codes.groupby(codes).size().sort_values(ascending=False).head(topn)
+
+    # Map codes to human-friendly labels using per-mode dictionary
+    if dict_df is not None and not dict_df.empty:
+        dmap = (
+            dict_df.loc[dict_df["source"] == mode, ["code", "description"]]
+            .set_index("code")["description"]
+            .to_dict()
+        )
+    else:
+        dmap = {}
+
+    labeled_index = []
+    for code_token in counts.index.tolist():
+        desc = dmap.get(str(code_token))
+        if desc and desc.upper() != "UNKNOWN":
+            label = f"{desc} ({code_token})"
+        else:
+            label = str(code_token)
+        labeled_index.append(label)
+
+    counts.index = labeled_index
+    ax = counts.sort_values().plot(kind="barh", figsize=(12, 7))
     ax.set_title(f"Top {topn} Delay Causes ({mode}, {year})")
     ax.set_xlabel("Count")
-    ax.set_ylabel("Code")
+    ax.set_ylabel("Cause")
     plt.tight_layout()
     out_path = out_dir / f"causes_{mode}_{year}.png"
     plt.savefig(out_path, dpi=150)
@@ -174,22 +306,32 @@ def fig_delay_hist(df: pd.DataFrame, out_dir: Path, mode: str, year: int) -> Opt
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate TTC delay visualizations from cleaned CSV")
-    ap.add_argument("--csv", type=Path, default=Path("data/processed/ttc_delays.csv"), help="Path to unified cleaned CSV")
+    ap.add_argument("--csv", type=Path, default=Path("data/processed/ttc_delays.csv"), help="Path to unified cleaned CSV (ignored if per-mode files are used)")
     ap.add_argument("--out", type=Path, default=Path("reports/figures"), help="Output directory for PNGs")
-    ap.add_argument("--mode", choices=["all", "subway", "streetcar", "bus"], default="subway", help="Mode to filter for station/causes/hour/hist charts")
+    ap.add_argument("--mode", choices=["all", "subway", "streetcar", "bus"], default="all", help="Generate charts for a specific mode or all")
     ap.add_argument("--year", type=int, default=None, help="Year for filtered charts (defaults to max year in data)")
+    ap.add_argument("--dict", type=Path, default=Path("data/processed/codes_all.csv"), help="Path to unified code dictionary CSV (source, code, description)")
     args = ap.parse_args()
 
     _ensure_out(args.out)
-    df = _load_csv(args.csv)
-    year = args.year or _pick_year(df)
+    # Prefer flexible loading to support split-by-mode design
+    df = _load_data_flexible(Path("data/processed").resolve())
+    dict_df = _load_code_dict(args.dict)
+    if dict_df is None or dict_df.empty:
+        # Try raw folder fallback
+        dict_df = _load_code_dict_fallback()
 
     outputs = []
+    # Always produce the overall monthly trend by mode
     outputs.append(fig_monthly_by_mode(df, args.out))
-    outputs.append(fig_top_stations(df, args.out, args.mode, year))
-    outputs.append(fig_causes(df, args.out, args.mode, year))
-    outputs.append(fig_peak_hour(df, args.out, args.mode, year))
-    outputs.append(fig_delay_hist(df, args.out, args.mode, year))
+
+    modes = [args.mode] if args.mode != "all" else ["subway", "streetcar", "bus"]
+    for m in modes:
+        year = args.year or _pick_year(df[df["source"] == m])
+        outputs.append(fig_top_stations(df, args.out, m, year))
+        outputs.append(fig_causes(df, args.out, m, year, dict_df=dict_df))
+        outputs.append(fig_peak_hour(df, args.out, m, year))
+        outputs.append(fig_delay_hist(df, args.out, m, year))
 
     for p in outputs:
         if isinstance(p, Path):
@@ -198,4 +340,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

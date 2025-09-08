@@ -24,10 +24,11 @@ This document outlines the Extract, Transform, Load (ETL) pipeline and the exact
 - Target: PostgreSQL (via Docker Compose)
 - Compose file: `docker-compose.yml` (host port `5433` → container `5432`)
 - Mounts: host `./data/processed` → container `/import` (read-only)
-- Schema: single table `ttc_delays` with standardized columns (see `db/init/001_schema.sql`)
-- Load: `COPY` from `/import/ttc_delays.csv` (see `db/init/002_import.sql`)
-- Constraints: `NOT NULL (date, station, source)`; `CHECK` on non-negative delays and bound category
-- Indexes: `(date)`, `(line)`, `(station)`, `(source, date)` (see `db/init/003_indexes.sql`)
+- Primary schema (split by mode):
+  - Tables: `ttc_delays_subway`, `ttc_delays_streetcar`, `ttc_delays_bus` (`db/init/006_schema_split.sql`)
+  - Load: `COPY` from `/import/subway_delays.csv`, `/import/streetcar_delays.csv`, `/import/bus_delays.csv` (`db/init/007_import_split.sql`)
+  - Dictionaries: `ttc_code_dictionary_subway|streetcar|bus` with `codes_*.csv` (`db/init/008/009_*.sql`)
+- Legacy (optional) unified table remains available: `ttc_delays` + `ttc_code_dictionary` (`db/init/001`–`005`)
 - Additional: materialized view `mv_monthly_counts` and refresh script are provided.
   - Create (first time): `psql -h localhost -p 5433 -U ttc -d ttc -f sql/materialized/mv_monthly_counts.sql`
   - Refresh: `psql -h localhost -p 5433 -U ttc -d ttc -f sql/materialized/refresh.sql`
@@ -46,6 +47,6 @@ This document outlines the Extract, Transform, Load (ETL) pipeline and the exact
 
 ## Code Dictionaries (per mode)
 
-- ETL emits per-mode code dictionaries: `data/processed/codes_subway.csv`, `codes_streetcar.csv`, `codes_bus.csv` (when available) and a unified `codes_all.csv`.
-- Database table `ttc_code_dictionary` ingests `codes_all.csv` via `db/init/005_import_code_dictionary.sql`.
-- Use view `vw_delays_with_desc` to access a resolved description (prefers dictionary; falls back to fact `description`).
+- ETL emits per-mode code dictionaries: `data/processed/codes_subway.csv`, `codes_streetcar.csv`, `codes_bus.csv` (when available). A unified `codes_all.csv` is also written for compatibility.
+- Database loads per-mode dictionaries into `ttc_code_dictionary_*` via `db/init/009_import_code_dictionary_split.sql`.
+- Use split views `vw_subway_with_desc`, `vw_streetcar_with_desc`, `vw_bus_with_desc` for resolved descriptions.

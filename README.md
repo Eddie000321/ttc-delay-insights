@@ -71,15 +71,18 @@ Files
 
 Data Model
 
-- Table: `ttc_delays`
-- Columns: `date`, `time`, `day`, `station`, `line`, `bound` (N/E/S/W), `code`, `min_delay`, `min_gap`, `vehicle`, `source` (bus/subway/streetcar), `raw_file`, `description`
-- Constraints: non‑negative delay/gap; `bound` in {N,E,S,W} or NULL
-- Indexes: `(date)`, `(line)`, `(station)`, `(source, date)`
-- SQL definitions:
-  - Schema: `db/init/001_schema.sql`
-  - Import (COPY): `db/init/002_import.sql`
-  - Indexes: `db/init/003_indexes.sql`
-  - Code dictionary (per mode): `db/init/004_code_dictionary.sql`, `db/init/005_import_code_dictionary.sql`
+- Primary (split by mode):
+  - Tables: `ttc_delays_subway`, `ttc_delays_streetcar`, `ttc_delays_bus`
+  - Columns (each): `date`, `time`, `day`, `station`, `line`, `bound` (N/E/S/W), `code`, `min_delay`, `min_gap`, `vehicle`, `raw_file`
+  - Indexes: `(date)`, `(line)`, `(station)`
+  - SQL: `db/init/006_schema_split.sql`, `db/init/007_import_split.sql`
+- Code dictionaries (per mode):
+  - Tables: `ttc_code_dictionary_subway`, `ttc_code_dictionary_streetcar`, `ttc_code_dictionary_bus`
+  - SQL: `db/init/008_code_dictionary_split.sql`, `db/init/009_import_code_dictionary_split.sql`
+- Views (with descriptions):
+  - `sql/views/vw_split_with_desc.sql` → `vw_subway_with_desc`, `vw_streetcar_with_desc`, `vw_bus_with_desc`, and optional `vw_delays_all_with_desc`
+- Legacy/optional unified table remains available for compatibility:
+  - `ttc_delays` + `ttc_code_dictionary` (see `db/init/001_schema.sql`…`005_import_code_dictionary.sql`)
 
 SQL Usage
 
@@ -88,8 +91,8 @@ SQL Usage
   - Top stations with parameters: `sql/reporting/top_stations.sql`
   - Monthly by mode: `sql/reporting/monthly_by_mode.sql`
 - Views / Materialized views:
-  - Logical view (daily counts): `sql/views/vw_daily_counts.sql`
-  - Delays with resolved description: `sql/views/vw_delays_with_desc.sql`
+  - Split views with description: `sql/views/vw_split_with_desc.sql`
+  - Daily counts (legacy unified): `sql/views/vw_daily_counts.sql`
   - Materialized monthly counts (+ refresh): `sql/materialized/mv_monthly_counts.sql`, `sql/materialized/refresh.sql`
 - Common psql params include: `sql/snippets/date_params.psql`
 - Folder overview: `sql/README.md`
@@ -143,12 +146,13 @@ Future: Python Visualizations (Matplotlib/Pandas)
 
 Generate Figures (script)
 
-- Run: `python analysis/visualize.py --mode subway --year 2024`
-- Defaults: reads `data/processed/ttc_delays.csv`, writes PNGs to `reports/figures/`
+- Run (all modes): `python analysis/visualize.py`
+- Run (specific mode/year): `python analysis/visualize.py --mode subway --year 2024`
+- Defaults: reads `data/processed/ttc_delays.csv`, code dictionary from `data/processed/codes_all.csv`, writes PNGs to `reports/figures/`
 - Outputs:
   - `monthly_by_mode.png`
-  - `top_stations_<mode>_<year>.png`
-  - `causes_<mode>_<year>.png`
+  - `top_stations_<mode>_<year>.png` (generated for subway, streetcar, bus)
+  - `causes_<mode>_<year>.png` (uses per-mode descriptions when available)
   - `peak_hour_<mode>_<year>.png`
   - `delay_hist_<mode>_<year>.png`
 
