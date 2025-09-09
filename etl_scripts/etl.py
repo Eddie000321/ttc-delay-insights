@@ -63,7 +63,18 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
             "time": ["Time"],
             "day": ["Day"],
             "station": ["Station", "Stop", "Location"],
-            "code": ["Code", "CODE"],
+            "code": [
+                "Code",
+                "CODE",
+                "Delay Code",
+                "DelayCode",
+                "Reason Code",
+                "Cause Code",
+                "Incident Code",
+                "Incident",
+                "Reason",
+                "Cause",
+            ],
             "min_delay": ["Min Delay", "Mins Delay", "Delay"],
             "min_gap": ["Min Gap", "Mins Gap", "Gap"],
             "bound": ["Bound", "Direction"],
@@ -91,13 +102,18 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
     # Parse date and normalize formats
     df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
 
-    # Normalize strings (strip/upper where appropriate)
-    for col in ["day", "station", "bound", "line", "code"]:
-        df[col] = (
-            df[col]
-            .astype("string")
-            .str.strip()
-            .where(df[col].notna())
+    # Normalize strings (strip; make code uppercase for consistent joining)
+    for col in ["day", "station", "bound", "line"]:
+        if col in df.columns:
+            df[col] = (
+                df[col]
+                .astype("string")
+                .str.strip()
+                .where(df[col].notna())
+            )
+    if "code" in df.columns:
+        df["code"] = (
+            df["code"].astype("string").str.strip().str.upper().where(df["code"].notna())
         )
 
     # Try to keep bound in a compact set
@@ -205,7 +221,7 @@ def _load_code_descriptions(dir_path: Path) -> Optional[pd.DataFrame]:
     for col in ["code", "description"]:
         if col not in df.columns:
             return None
-    df["code"] = df["code"].astype("string").str.strip()
+    df["code"] = df["code"].astype("string").str.strip().str.upper()
     df["description"] = df["description"].astype("string").str.strip()
     df = df[["code", "description"]].dropna(subset=["code"]).drop_duplicates()
     return df
@@ -281,6 +297,18 @@ def main() -> None:
 
     # Code dictionaries per mode + unified
     code_parts = []
+    # Helper to derive a dictionary from facts if official dictionary is missing
+    def derive_dict_from_facts(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+        if df is None or df.empty or "code" not in df.columns:
+            return None
+        s = df["code"].dropna().astype("string").str.strip().str.upper().drop_duplicates()
+        if s.empty:
+            return None
+        # Build a simple description by title-casing the token (replace underscores with space)
+        desc = s.str.replace("_", " ", regex=False).str.title()
+        out = pd.DataFrame({"code": s, "description": desc})
+        return out
+
     if subway_codes is not None and not subway_codes.empty:
         sc = subway_codes.copy()
         sc["source"] = "subway"
@@ -288,6 +316,15 @@ def main() -> None:
         sc[["source", "code", "description"]].drop_duplicates(["source", "code"]).to_csv(sc_out, index=False)
         print(f"Wrote: {sc_out}")
         code_parts.append(sc[["source", "code", "description"]])
+    else:
+        scd = derive_dict_from_facts(subway_df)
+        if scd is not None and not scd.empty:
+            scd["source"] = "subway"
+            sc_out = PROCESSED_DIR / "codes_subway.csv"
+            scd[["source", "code", "description"]].to_csv(sc_out, index=False)
+            print(f"Wrote (derived): {sc_out}")
+            code_parts.append(scd[["source", "code", "description"]])
+
     if streetcar_codes is not None and not streetcar_codes.empty:
         st = streetcar_codes.copy()
         st["source"] = "streetcar"
@@ -295,6 +332,15 @@ def main() -> None:
         st[["source", "code", "description"]].drop_duplicates(["source", "code"]).to_csv(st_out, index=False)
         print(f"Wrote: {st_out}")
         code_parts.append(st[["source", "code", "description"]])
+    else:
+        std = derive_dict_from_facts(streetcar_df)
+        if std is not None and not std.empty:
+            std["source"] = "streetcar"
+            st_out = PROCESSED_DIR / "codes_streetcar.csv"
+            std[["source", "code", "description"]].to_csv(st_out, index=False)
+            print(f"Wrote (derived): {st_out}")
+            code_parts.append(std[["source", "code", "description"]])
+
     if bus_codes is not None and not bus_codes.empty:
         bs = bus_codes.copy()
         bs["source"] = "bus"
@@ -302,6 +348,14 @@ def main() -> None:
         bs[["source", "code", "description"]].drop_duplicates(["source", "code"]).to_csv(bs_out, index=False)
         print(f"Wrote: {bs_out}")
         code_parts.append(bs[["source", "code", "description"]])
+    else:
+        bsd = derive_dict_from_facts(bus_df)
+        if bsd is not None and not bsd.empty:
+            bsd["source"] = "bus"
+            bs_out = PROCESSED_DIR / "codes_bus.csv"
+            bsd[["source", "code", "description"]].to_csv(bs_out, index=False)
+            print(f"Wrote (derived): {bs_out}")
+            code_parts.append(bsd[["source", "code", "description"]])
     if code_parts:
         all_codes = pd.concat(code_parts, ignore_index=True).drop_duplicates(["source", "code"])
         all_out = PROCESSED_DIR / "codes_all.csv"

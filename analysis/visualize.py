@@ -59,11 +59,25 @@ def _load_data_flexible(processed_root: Path) -> pd.DataFrame:
     """
     unified = processed_root / "ttc_delays.csv"
     if unified.exists():
-        df = pd.read_csv(unified)
+        df = pd.read_csv(unified, low_memory=False)
         # Guarantee source column even in older outputs
         if "source" not in df.columns:
             # Infer from raw_file if possible, else leave empty
             df["source"] = pd.NA
+        # Normalize types
+        if "date" in df.columns:
+            df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        if "time" in df.columns:
+            t = pd.to_datetime(df["time"], errors="coerce")
+            df["hour"] = t.dt.hour
+        for c in ["min_delay", "min_gap", "vehicle"]:
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+        for c in ["source", "station"]:
+            if c in df.columns:
+                df[c] = df[c].astype("string").str.strip()
+        if "code" in df.columns:
+            df["code"] = df["code"].astype("string").str.strip().str.upper()
         return df
     # Fallback: per-mode
     frames = []
@@ -71,9 +85,23 @@ def _load_data_flexible(processed_root: Path) -> pd.DataFrame:
         p = processed_root / name
         if not p.exists():
             continue
-        f = pd.read_csv(p)
+        f = pd.read_csv(p, low_memory=False)
         if "source" not in f.columns:
             f["source"] = mode
+        # Normalize types
+        if "date" in f.columns:
+            f["date"] = pd.to_datetime(f["date"], errors="coerce")
+        if "time" in f.columns:
+            t = pd.to_datetime(f["time"], errors="coerce")
+            f["hour"] = t.dt.hour
+        for c in ["min_delay", "min_gap", "vehicle"]:
+            if c in f.columns:
+                f[c] = pd.to_numeric(f[c], errors="coerce")
+        for c in ["source", "station"]:
+            if c in f.columns:
+                f[c] = f[c].astype("string").str.strip()
+        if "code" in f.columns:
+            f["code"] = f["code"].astype("string").str.strip().str.upper()
         frames.append(f)
     if not frames:
         raise FileNotFoundError("No processed CSVs found. Run etl_scripts/etl.py first.")
@@ -202,7 +230,7 @@ def _load_code_dict_fallback(raw_root: Path = Path("data/raw")) -> Optional[pd.D
             if not code_col or not desc_col:
                 continue
             df = df[[code_col, desc_col]].rename(columns={code_col: "code", desc_col: "description"})
-            df["code"] = df["code"].astype("string").str.strip()
+            df["code"] = df["code"].astype("string").str.strip().str.upper()
             df["description"] = df["description"].astype("string").str.strip()
             df = df.dropna(subset=["code"]).drop_duplicates()
             if not df.empty:
