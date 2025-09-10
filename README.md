@@ -17,6 +17,8 @@ Stack
 
 - Python + Pandas: convert and standardize raw Excel/CSV into cleaned CSV
 - Docker + PostgreSQL 16: load and manage the database
+- FastAPI + SQLAlchemy: lightweight analytics API over Postgres
+- Vite + React + Chart.js: interactive frontend consuming the API
 - psql / DataGrip / pgAdmin: DB access and query execution
 - Default connection (docker-compose): host `localhost:5433`, DB/USER/PASS `ttc`
 
@@ -25,6 +27,7 @@ Quickstart
 - Prerequisites:
   - Docker + Docker Compose
   - Python 3.10+ with pip packages: `pandas`, `openpyxl`
+  - Node.js 18+ for frontend (Vite + React)
 - Setup:
   - Create venv and install deps:
     - `python -m venv .venv && source .venv/bin/activate`
@@ -44,6 +47,20 @@ Quickstart
 - Connect and explore:
   - `psql -h localhost -p 5433 -U ttc -d ttc`
   - Example report: `psql -h localhost -p 5433 -U ttc -d ttc -v source='subway' -v from='2024-01-01' -v to='2024-12-31' -f sql/reporting/top_stations.sql`
+
+Frontend + API (Local)
+
+- API (FastAPI):
+  - `python -m venv .venv && source .venv/bin/activate`
+  - `pip install -r api/requirements.txt`
+  - `uvicorn api.main:app --reload --port 8000`
+- Frontend (Vite + React):
+  - `cd web && cp .env.example .env`  # optional; Vite dev proxy handles `/api`
+  - `npm install`
+  - `npm run dev`
+- Notes:
+  - Vite dev server proxies `/api` to `http://localhost:8000` by default; or set `VITE_API_URL` in `web/.env`.
+  - See `docs/frontend.md` for endpoint list and details.
 
 ETL Pipeline
 
@@ -67,6 +84,7 @@ Files
 - Validation: `etl_scripts/validate.py`
 - Flow & rules: `docs/etl_flow.md`, `docs/mapping_rules.md`
 - Data dictionary: `docs/data_dictionary.md`
+- Frontend + API: `docs/frontend.md`
 - Docker: `docker-compose.yml`
 
 Data Model
@@ -105,6 +123,8 @@ Repository Structure
 - `db/init/`: schema, import, indexes for Postgres init
 - `sql/`: exploration, reporting, views, materialized views, snippets
 - `docs/`: data dictionary, ETL flow, mapping rules, findings
+- `api/`: FastAPI app exposing analytics endpoints
+- `web/`: Vite + React frontend consuming the API
 - `docker-compose.yml`: Postgres service (port 5433)
 
 Findings (Early)
@@ -118,7 +138,7 @@ Findings (Early)
 Roadmap
 
 - Orchestration: schedule ETL with Airflow or Prefect
-- API: lightweight FastAPI endpoints for common stats
+- API: implemented (FastAPI + SQLAlchemy). Next: deploy and add caching/MTV refresh schedules
 - Forecasting: ML for route‑level delay probability
 
 Future: Python Visualizations (Matplotlib/Pandas)
