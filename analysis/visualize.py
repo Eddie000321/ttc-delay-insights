@@ -14,6 +14,7 @@ Outputs (default: reports/figures)
 Usage examples
   python analysis/visualize.py
   python analysis/visualize.py --mode subway --year 2024
+  python analysis/visualize.py --mode subway --all-years  # aggregate across all years
   python analysis/visualize.py --csv data/processed/ttc_delays.csv --out reports/figures
 """
 
@@ -141,27 +142,32 @@ def fig_monthly_by_mode(df: pd.DataFrame, out_dir: Path) -> Path:
     return out_path
 
 
-def _filter(df: pd.DataFrame, mode: str, year: int) -> pd.DataFrame:
-    start, end = _daterange_of_year(year)
-    m = (df["date"] >= start) & (df["date"] < end)
+def _filter(df: pd.DataFrame, mode: str, year: Optional[int]) -> pd.DataFrame:
+    if year is not None:
+        start, end = _daterange_of_year(year)
+        m = (df["date"] >= start) & (df["date"] < end)
+    else:
+        # No year filter (aggregate across all years)
+        m = pd.Series(True, index=df.index)
     if mode != "all" and "source" in df.columns:
         m &= (df["source"] == mode)
     return df.loc[m].copy()
 
 
-def fig_top_stations(df: pd.DataFrame, out_dir: Path, mode: str, year: int, topn: int = 20) -> Optional[Path]:
+def fig_top_stations(df: pd.DataFrame, out_dir: Path, mode: str, year: Optional[int], topn: int = 20) -> Optional[Path]:
     if "station" not in df.columns:
         return None
     tmp = _filter(df, mode, year)
     if tmp.empty:
         return None
     top = tmp.groupby("station").size().sort_values(ascending=False).head(topn)
+    yr_label = str(year) if year is not None else "all years"
     ax = top.sort_values().plot(kind="barh", figsize=(10, 6))
-    ax.set_title(f"Top {topn} Stations by Count ({mode}, {year})")
+    ax.set_title(f"Top {topn} Stations by Count ({mode}, {yr_label})")
     ax.set_xlabel("Count")
     ax.set_ylabel("Station")
     plt.tight_layout()
-    out_path = out_dir / f"top_stations_{mode}_{year}.png"
+    out_path = out_dir / f"top_stations_{mode}_{(year if year is not None else 'all')}.png"
     plt.savefig(out_path, dpi=150)
     plt.close()
     return out_path
@@ -247,7 +253,7 @@ def fig_causes(
     df: pd.DataFrame,
     out_dir: Path,
     mode: str,
-    year: int,
+    year: Optional[int],
     topn: int = 20,
     dict_df: Optional[pd.DataFrame] = None,
 ) -> Optional[Path]:
@@ -258,6 +264,7 @@ def fig_causes(
         return None
     codes = tmp["code"].fillna("UNKNOWN")
     counts = codes.groupby(codes).size().sort_values(ascending=False).head(topn)
+    yr_label = str(year) if year is not None else "all years"
 
     # Map codes to human-friendly labels using per-mode dictionary
     if dict_df is not None and not dict_df.empty:
@@ -280,17 +287,17 @@ def fig_causes(
 
     counts.index = labeled_index
     ax = counts.sort_values().plot(kind="barh", figsize=(12, 7))
-    ax.set_title(f"Top {topn} Delay Causes ({mode}, {year})")
+    ax.set_title(f"Top {topn} Delay Causes ({mode}, {yr_label})")
     ax.set_xlabel("Count")
     ax.set_ylabel("Cause")
     plt.tight_layout()
-    out_path = out_dir / f"causes_{mode}_{year}.png"
+    out_path = out_dir / f"causes_{mode}_{(year if year is not None else 'all')}.png"
     plt.savefig(out_path, dpi=150)
     plt.close()
     return out_path
 
 
-def fig_peak_hour(df: pd.DataFrame, out_dir: Path, mode: str, year: int) -> Optional[Path]:
+def fig_peak_hour(df: pd.DataFrame, out_dir: Path, mode: str, year: Optional[int]) -> Optional[Path]:
     if "hour" not in df.columns:
         return None
     tmp = _filter(df, mode, year)
@@ -298,18 +305,19 @@ def fig_peak_hour(df: pd.DataFrame, out_dir: Path, mode: str, year: int) -> Opti
         return None
     hours = tmp["hour"].dropna().astype(int)
     counts = hours.value_counts().reindex(range(0, 24), fill_value=0).sort_index()
+    yr_label = str(year) if year is not None else "all years"
     ax = counts.plot(kind="bar", figsize=(10, 4))
-    ax.set_title(f"Events by Hour ({mode}, {year})")
+    ax.set_title(f"Events by Hour ({mode}, {yr_label})")
     ax.set_xlabel("Hour of Day")
     ax.set_ylabel("Count")
     plt.tight_layout()
-    out_path = out_dir / f"peak_hour_{mode}_{year}.png"
+    out_path = out_dir / f"peak_hour_{mode}_{(year if year is not None else 'all')}.png"
     plt.savefig(out_path, dpi=150)
     plt.close()
     return out_path
 
 
-def fig_delay_hist(df: pd.DataFrame, out_dir: Path, mode: str, year: int) -> Optional[Path]:
+def fig_delay_hist(df: pd.DataFrame, out_dir: Path, mode: str, year: Optional[int]) -> Optional[Path]:
     if "min_delay" not in df.columns:
         return None
     tmp = _filter(df, mode, year)
@@ -320,13 +328,14 @@ def fig_delay_hist(df: pd.DataFrame, out_dir: Path, mode: str, year: int) -> Opt
         return None
     # Cap extreme outliers for readability
     s = s.clip(lower=0, upper=120)
+    yr_label = str(year) if year is not None else "all years"
     plt.figure(figsize=(10, 4))
     plt.hist(s, bins=40, color="#4C78A8")
-    plt.title(f"Delay Duration Distribution (0–120 min) ({mode}, {year})")
+    plt.title(f"Delay Duration Distribution (0–120 min) ({mode}, {yr_label})")
     plt.xlabel("Minutes of Delay")
     plt.ylabel("Frequency")
     plt.tight_layout()
-    out_path = out_dir / f"delay_hist_{mode}_{year}.png"
+    out_path = out_dir / f"delay_hist_{mode}_{(year if year is not None else 'all')}.png"
     plt.savefig(out_path, dpi=150)
     plt.close()
     return out_path
@@ -338,6 +347,7 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=Path("reports/figures"), help="Output directory for PNGs")
     ap.add_argument("--mode", choices=["all", "subway", "streetcar", "bus"], default="all", help="Generate charts for a specific mode or all")
     ap.add_argument("--year", type=int, default=None, help="Year for filtered charts (defaults to max year in data)")
+    ap.add_argument("--all-years", action="store_true", help="Aggregate figures across all years (ignores --year)")
     ap.add_argument("--dict", type=Path, default=Path("data/processed/codes_all.csv"), help="Path to unified code dictionary CSV (source, code, description)")
     args = ap.parse_args()
 
@@ -355,7 +365,7 @@ def main() -> None:
 
     modes = [args.mode] if args.mode != "all" else ["subway", "streetcar", "bus"]
     for m in modes:
-        year = args.year or _pick_year(df[df["source"] == m])
+        year = None if args.all_years else (args.year or _pick_year(df[df["source"] == m]))
         outputs.append(fig_top_stations(df, args.out, m, year))
         outputs.append(fig_causes(df, args.out, m, year, dict_df=dict_df))
         outputs.append(fig_peak_hour(df, args.out, m, year))

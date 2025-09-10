@@ -148,13 +148,16 @@ Generate Figures (script)
 
 - Run (all modes): `python analysis/visualize.py`
 - Run (specific mode/year): `python analysis/visualize.py --mode subway --year 2024`
+- Run (aggregate all years):
+  - All modes: `python analysis/visualize.py --mode all --all-years`
+  - Single mode: `python analysis/visualize.py --mode subway --all-years`
 - Defaults: reads `data/processed/ttc_delays.csv`, code dictionary from `data/processed/codes_all.csv`, writes PNGs to `reports/figures/`
 - Outputs:
   - `monthly_by_mode.png`
-  - `top_stations_<mode>_<year>.png` (generated for subway, streetcar, bus)
-  - `causes_<mode>_<year>.png` (uses per-mode descriptions when available)
-  - `peak_hour_<mode>_<year>.png`
-  - `delay_hist_<mode>_<year>.png`
+  - `top_stations_<mode>_<year>.png` (or `<mode>_all.png` when `--all-years`)
+  - `causes_<mode>_<year>.png` (uses per‑mode descriptions; `<mode>_all.png` when `--all-years`)
+  - `peak_hour_<mode>_<year>.png` (or `<mode>_all.png` when `--all-years`)
+  - `delay_hist_<mode>_<year>.png` (or `<mode>_all.png` when `--all-years`)
 
 License & Attribution
 
