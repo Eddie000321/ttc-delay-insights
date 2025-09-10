@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import MonthlyChart from '../components/MonthlyChart'
+import MonthlyStackedByYear from '../components/MonthlyStackedByYear'
 import TopStations from '../components/TopStations'
 import CauseChart from '../components/CauseChart'
 import PeakHourChart from '../components/PeakHourChart'
@@ -21,17 +22,10 @@ export default function ModePage({ mode }: { mode: Mode }) {
   return (
     <div>
       <h1 style={{ marginBottom: 8 }}>{header}</h1>
-      {mode === 'all' ? (
-        <>
-          <h2 style={{ fontSize: 18 }}>Monthly Events by Mode</h2>
-          <MonthlyChart />
-        </>
-      ) : (
-        <>
-          <h2 style={{ fontSize: 18 }}>Monthly Events</h2>
-          <MonthlyChart sourceFilter={mode as any} />
-        </>
-      )}
+      <section>
+        <h2 style={{ fontSize: 18 }}>Monthly Events (stacked by year)</h2>
+        <MonthlyStackedByYear sourceFilter={mode === 'all' ? undefined : (mode as any)} />
+      </section>
 
       {mode !== 'all' && (
         <>
@@ -70,4 +64,3 @@ export default function ModePage({ mode }: { mode: Mode }) {
     </div>
   )
 }
-
