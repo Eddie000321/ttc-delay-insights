@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any
+from datetime import time as dtime
 
 import pandas as pd
 
@@ -59,7 +60,16 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
     df = _coalesce_columns(
         df,
         {
-            "date": ["Date", "DATE"],
+            "date": [
+                "Date",
+                "DATE",
+                "Report Date",
+                "Reported Date",
+                "ReportDate",
+                "Incident Date",
+                "Occurrence Date",
+                "Occurence Date",
+            ],
             "time": ["Time"],
             "day": ["Day"],
             "station": ["Station", "Stop", "Location"],
@@ -102,6 +112,52 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
     # Parse date and normalize formats
     df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
 
+    # Normalize time to a consistent string HH:MM (handles Excel times, numbers, and strings)
+    if "time" in df.columns:
+        def to_hhmm(v: Any) -> Optional[str]:
+            if v is None or (isinstance(v, float) and pd.isna(v)):
+                return None
+            # Already a time object
+            if isinstance(v, dtime):
+                return f"{v.hour:02d}:{v.minute:02d}"
+            # Numeric values: Excel time fraction (0..1) or HHMM integers
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                if 0 <= float(v) < 1.0:
+                    total_minutes = int(round(float(v) * 24 * 60))
+                    hh = (total_minutes // 60) % 24
+                    mm = total_minutes % 60
+                    return f"{hh:02d}:{mm:02d}"
+                # Treat large integers like 0..2359 in HHMM format
+                ival = int(round(float(v)))
+                if 0 <= ival <= 2359:
+                    hh, mm = divmod(ival, 100)
+                    if 0 <= hh <= 23 and 0 <= mm <= 59:
+                        return f"{hh:02d}:{mm:02d}"
+            # String inputs: try multiple patterns
+            if isinstance(v, str):
+                s = v.strip()
+                if s == "":
+                    return None
+                # Common forms: HH:MM[:SS]
+                if pd.Series([s]).str.match(r"^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$").iloc[0]:
+                    parts = s.split(":")
+                    hh = int(parts[0]); mm = int(parts[1])
+                    if 0 <= hh <= 23 and 0 <= mm <= 59:
+                        return f"{hh:02d}:{mm:02d}"
+                # Compact numeric string HHMM / HMM
+                if s.isdigit() and 3 <= len(s) <= 4:
+                    ival = int(s)
+                    hh, mm = divmod(ival, 100)
+                    if 0 <= hh <= 23 and 0 <= mm <= 59:
+                        return f"{hh:02d}:{mm:02d}"
+            # Fallback: pandas parse
+            ts = pd.to_datetime(pd.Series([v]), errors="coerce").iloc[0]
+            if pd.notna(ts):
+                return f"{ts.hour:02d}:{ts.minute:02d}"
+            return None
+
+        df["time"] = df["time"].apply(to_hhmm).astype("string")
+
     # Normalize strings (strip; make code uppercase for consistent joining)
     for col in ["day", "station", "bound", "line"]:
         if col in df.columns:
@@ -139,6 +195,10 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
     # Numeric coercion for durations
     for col in ["min_delay", "min_gap", "vehicle"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
+    # Enforce non-negative durations; set negatives to null to satisfy DB constraints
+    for col in ["min_delay", "min_gap"]:
+        if col in df.columns:
+            df.loc[df[col].notna() & (df[col] < 0), col] = pd.NA
 
     df["source"] = source
     df["raw_file"] = str(raw_path.relative_to(Path.cwd())) if raw_path.is_absolute() else str(raw_path)

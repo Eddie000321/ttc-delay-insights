@@ -49198,6 +49198,7 @@ date,time,day,station,line,bound,code,min_delay,min_gap,vehicle,source,raw_file,
 2024-01-01,13:24,Monday,VAUGHAN MC STATION,YU,,SUDP,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,DISORDERLY PATRON
 2024-01-01,22:00,Monday,YONGE-UNIVERSITY AND B,YU/BD,,MUO,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,MISCELLANEOUS OTHER
 2024-01-01,09:45,Monday,QUEEN STATION,YUS,S,SUO,10.0,16.0,5601.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,SECURITY OTHER
+2024-01-02,08:15,Tuesday,Bloor-Yonge,2,E,SIG,5.0,3.0,123.0,subway,data/raw/raw_subway/subway_sample_2024.csv,
 2024-01-02,09:22,Tuesday,BAY STATION,BD,,SUDP,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,DISORDERLY PATRON
 2024-01-02,01:48,Tuesday,BROADVIEW STATION,BD,W,EUVE,11.0,16.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,WORK VEHICLE
 2024-01-02,09:12,Tuesday,BROADVIEW STATION,BD,W,EUME,9.0,12.0,5004.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,RC&S MAINTENANCE ERROR (HUMAN ERROR - NO EQUIP.FAULT)
@@ -52025,6 +52026,7 @@ date,time,day,station,line,bound,code,min_delay,min_gap,vehicle,source,raw_file,
 2024-02-09,17:48,Friday,WELLESLEY STATION,YU,N,MUI,13.0,16.0,5556.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,INJURED/ILL CUSTOMER ON TRAIN â TRANSPORTED
 2024-02-09,01:49,Friday,WILSON STATION,YU,,SUO,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,SECURITY OTHER
 2024-02-09,22:00,Friday,YONGE-UNIVERSITY AND B,YU/BD,,MUO,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,MISCELLANEOUS OTHER
+2024-02-10,17:45,Saturday,St George,2,W,MECH,12.0,4.0,124.0,subway,data/raw/raw_subway/subway_sample_2024.csv,
 2024-02-10,00:01,Saturday,CHESTER STATION,BD,,MUIRS,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,INJURED/ILL CUSTOMER IN STATION â MEDICAL AID REFUSED
 2024-02-10,15:53,Saturday,DUNDAS WEST STATION,BD,W,SUO,18.0,22.0,5274.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,SECURITY OTHER
 2024-02-10,21:34,Saturday,ISLINGTON STATION,BD,,SUUT,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,UNAUTHORIZED AT TRACK LEVEL
@@ -53761,6 +53763,7 @@ date,time,day,station,line,bound,code,min_delay,min_gap,vehicle,source,raw_file,
 2024-03-04,22:45,Monday,WILSON STATION,YU,,SUDP,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,DISORDERLY PATRON
 2024-03-04,23:47,Monday,WILSON STATION,YU,,MUIS,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,INJURED/ILL CUSTOMER IN STATION - TRANSPORTED
 2024-03-04,22:00,Monday,YONGE-UNIVERSITY AND B,YU/BD,,MUO,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,MISCELLANEOUS OTHER
+2024-03-05,09:30,Tuesday,Union,1,S,WEAT,7.0,2.0,125.0,subway,data/raw/raw_subway/subway_sample_2024.csv,
 2024-03-05,08:17,Tuesday,BAY STATION TO PAPE ST,BD,E,PUTR,5.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,RAIL RELATED PROBLEM
 2024-03-05,01:35,Tuesday,CASTLE FRANK STATION,BD,E,SUO,0.0,0.0,0.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,SECURITY OTHER
 2024-03-05,20:54,Tuesday,CASTLE FRANK STATION,BD,E,SUUT,0.0,0.0,5286.0,subway,data/raw/raw_subway/ttc-subway-delay-data-2024.xlsx,UNAUTHORIZED AT TRACK LEVEL
