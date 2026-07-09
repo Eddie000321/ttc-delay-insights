@@ -27,7 +27,7 @@ Quickstart
 - Prerequisites:
   - Docker + Docker Compose
   - Python 3.10+ with pip packages: `pandas`, `openpyxl`
-  - Node.js 18+ for frontend (Vite + React)
+  - Node.js `^20.19.0 || >=22.12.0` for frontend (Vite 8 + React)
 - Setup:
   - Create venv and install deps:
     - `python -m venv .venv && source .venv/bin/activate`
