@@ -62,6 +62,13 @@ Frontend + API (Local)
   - Vite dev server proxies `/api` to `http://localhost:8000` by default; or set `VITE_API_URL` in `web/.env`.
   - See `docs/frontend.md` for endpoint list and details.
 
+Quality Checks
+
+- ETL smoke/unit tests (uses Python's standard-library test runner plus the project runtime dependency `pandas`):
+  - `python -m unittest discover -s tests -v`
+- Frontend production build and TypeScript check:
+  - `cd web && npm ci && npm run build`
+
 ETL Pipeline
 
 - Extract:

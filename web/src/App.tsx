@@ -11,11 +11,11 @@ const tabLinkStyle: React.CSSProperties = {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: 16, fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' }}>
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
           <div style={{ fontWeight: 700 }}>TTC Delay Insights</div>
-          <nav style={{ display: 'flex', gap: 8 }}>
+          <nav aria-label="Delay mode" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <NavLink to="/" style={({isActive}) => ({ ...tabLinkStyle, background: isActive ? '#eef3fb' : 'transparent' })}>Home</NavLink>
             <NavLink to="/all" style={({isActive}) => ({ ...tabLinkStyle, background: isActive ? '#eef3fb' : 'transparent' })}>All</NavLink>
             <NavLink to="/subway" style={({isActive}) => ({ ...tabLinkStyle, background: isActive ? '#eef3fb' : 'transparent' })}>Subway</NavLink>

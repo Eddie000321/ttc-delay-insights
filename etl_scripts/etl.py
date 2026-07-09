@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import List, Optional, Any
 from datetime import time as dtime
@@ -141,7 +140,8 @@ def _normalize_common(df: pd.DataFrame, source: str, raw_path: Path) -> pd.DataF
                 # Common forms: HH:MM[:SS]
                 if pd.Series([s]).str.match(r"^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$").iloc[0]:
                     parts = s.split(":")
-                    hh = int(parts[0]); mm = int(parts[1])
+                    hh = int(parts[0])
+                    mm = int(parts[1])
                     if 0 <= hh <= 23 and 0 <= mm <= 59:
                         return f"{hh:02d}:{mm:02d}"
                 # Compact numeric string HHMM / HMM

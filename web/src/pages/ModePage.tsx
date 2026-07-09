@@ -31,7 +31,7 @@ export default function ModePage({ mode }: { mode: Mode }) {
         <>
           <section style={{ marginTop: 24 }}>
             <h2 style={{ fontSize: 18 }}>Top Stations</h2>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
               <label>
                 From:
                 <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} style={{ marginLeft: 8 }} />
