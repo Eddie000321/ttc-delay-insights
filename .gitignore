@@ -18,3 +18,36 @@ __pycache__/
 
 # Local interview notes (do not commit)
 docs/interview_design_story.md
+
+# Codex security baseline
+# Keep local secrets and machine credentials out of Git.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+id_rsa
+id_rsa.*
+id_dsa
+id_dsa.*
+id_ecdsa
+id_ecdsa.*
+id_ed25519
+id_ed25519.*
+Thumbs.db
+node_modules/
+venv/
+
+# Generated test and frontend output
+.pytest_cache/
+.coverage
+coverage/
+dist/
+.vite/
+*.tsbuildinfo

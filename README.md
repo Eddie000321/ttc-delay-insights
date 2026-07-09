@@ -27,7 +27,7 @@ Quickstart
 - Prerequisites:
   - Docker + Docker Compose
   - Python 3.10+ with pip packages: `pandas`, `openpyxl`
-  - Node.js 18+ for frontend (Vite + React)
+  - Node.js `^20.19.0 || >=22.12.0` for frontend (Vite 8 + React)
 - Setup:
   - Create venv and install deps:
     - `python -m venv .venv && source .venv/bin/activate`
@@ -61,6 +61,13 @@ Frontend + API (Local)
 - Notes:
   - Vite dev server proxies `/api` to `http://localhost:8000` by default; or set `VITE_API_URL` in `web/.env`.
   - See `docs/frontend.md` for endpoint list and details.
+
+Quality Checks
+
+- ETL smoke/unit tests (uses Python's standard-library test runner plus the project runtime dependency `pandas`):
+  - `python -m unittest discover -s tests -v`
+- Frontend production build and TypeScript check:
+  - `cd web && npm ci && npm run build`
 
 ETL Pipeline
 
