@@ -1,0 +1,46 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  etl-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install verification dependencies
+        run: python -m pip install pandas==2.3.3 openpyxl==3.1.5 ruff==0.12.0
+      - name: Run ETL contract tests
+        run: python -m unittest discover -s tests -v
+      - name: Run Ruff
+        run: ruff check etl_scripts api tests analysis
+      - name: Compile Python sources
+        run: python -m compileall -q etl_scripts api tests analysis
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Audit production and development dependencies
+        run: npm audit --audit-level=high
+      - name: Type-check and build
+        run: npm run build
