@@ -1,11 +1,49 @@
-TTC Delay Data Project
+# TTC Delay Insights
 
-Goal
+**A deterministic ETL, PostgreSQL, FastAPI, and React project for exploring
+public TTC bus, subway, and streetcar delay records.**
+
+[![Quality](https://github.com/Eddie000321/ttc-delay-insights/actions/workflows/quality.yml/badge.svg)](https://github.com/Eddie000321/ttc-delay-insights/actions/workflows/quality.yml)
+[![Portfolio entry](https://img.shields.io/badge/Portfolio-Project_Entry-006f9c)](https://eddie000321.github.io/#project-ttc-delay-insights)
+![Python](https://img.shields.io/badge/Python-ETL-3776AB?logo=python&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![React](https://img.shields.io/badge/React-TypeScript-087EA4?logo=react&logoColor=white)
+
+## At a glance
+
+| Area | Evidence |
+| --- | --- |
+| Dataset | Approximately 410K public delay records across bus, subway, and streetcar modes |
+| Pipeline | Deterministic Excel/CSV normalization with source provenance and validation |
+| Verification | 5 network-free ETL tests plus frontend typecheck and production build |
+| Delivery | PostgreSQL reporting, FastAPI analytics endpoints, and React/Chart.js views |
+| Boundary | Descriptive public-data analysis; no service prediction or operational control claim |
+
+## Analysis preview
+
+| Monthly events by mode | Top subway stations, 2025 |
+| --- | --- |
+| ![Monthly TTC delay events split by mode](reports/figures/monthly_by_mode.png) | ![Top subway stations by delay events in 2025](reports/figures/top_stations_subway_2025.png) |
+
+## System flow
+
+```mermaid
+flowchart LR
+    Source[Toronto Open Data files] --> ETL[Deterministic Python ETL]
+    ETL --> Validate[Schema and quality checks]
+    Validate --> CSV[Normalized CSV]
+    CSV --> PostgreSQL[(PostgreSQL 16)]
+    PostgreSQL --> API[FastAPI analytics]
+    API --> UI[React + Chart.js]
+    PostgreSQL --> SQL[Parameterized SQL reports]
+```
+
+## Goal
 
 - Collect, clean, and load TTC Subway, Streetcar, and Bus delay data (2014–present) to explore “Why does the TTC experience frequent delays?” using a database- and SQL‑first workflow.
 - Scope: BI tools (e.g., Power BI / Looker Studio) are intentionally out of scope; this project focuses on ETL, PostgreSQL, and SQL analysis.
 
-Data Sources
+## Data Sources
 
 - Official: Toronto Open Data Portal (TTC delays datasets)
 - Formats: historical Excel (monthly sheets) and newer CSV files
@@ -13,7 +51,7 @@ Data Sources
 - Scale characteristics: Bus > Subway > Streetcar
 - Typical columns: Date, Time, Day, Station, Line, Code, Min Delay, Min Gap, Bound, Vehicle
 
-Stack
+## Stack
 
 - Python + Pandas: convert and standardize raw Excel/CSV into cleaned CSV
 - Docker + PostgreSQL 16: load and manage the database
@@ -22,7 +60,7 @@ Stack
 - psql / DataGrip / pgAdmin: DB access and query execution
 - Default connection (docker-compose): host `localhost:5433`, DB/USER/PASS `ttc`
 
-Quickstart
+## Quickstart
 
 - Prerequisites:
   - Docker + Docker Compose
@@ -48,7 +86,7 @@ Quickstart
   - `psql -h localhost -p 5433 -U ttc -d ttc`
   - Example report: `psql -h localhost -p 5433 -U ttc -d ttc -v source='subway' -v from='2024-01-01' -v to='2024-12-31' -f sql/reporting/top_stations.sql`
 
-Frontend + API (Local)
+## Frontend + API (Local)
 
 - API (FastAPI):
   - `python -m venv .venv && source .venv/bin/activate`
@@ -62,14 +100,14 @@ Frontend + API (Local)
   - Vite dev server proxies `/api` to `http://localhost:8000` by default; or set `VITE_API_URL` in `web/.env`.
   - See `docs/frontend.md` for endpoint list and details.
 
-Quality Checks
+## Quality Checks
 
 - ETL smoke/unit tests (uses Python's standard-library test runner plus the project runtime dependency `pandas`):
   - `python -m unittest discover -s tests -v`
 - Frontend production build and TypeScript check:
   - `cd web && npm ci && npm run build`
 
-ETL Pipeline
+## ETL Pipeline
 
 - Extract:
   - Download yearly/monthly TTC delay files from Toronto Open Data (Excel/CSV) for Subway, Streetcar, Bus.
@@ -85,7 +123,7 @@ ETL Pipeline
 - Validation:
   - `etl_scripts/validate.py` checks required columns, nulls, ranges, categories, and duplicate candidates
 
-Files
+## Files
 
 - ETL: `etl_scripts/etl.py`
 - Validation: `etl_scripts/validate.py`
@@ -94,7 +132,7 @@ Files
 - Frontend + API: `docs/frontend.md`
 - Docker: `docker-compose.yml`
 
-Data Model
+## Data Model
 
 - Primary (split by mode):
   - Tables: `ttc_delays_subway`, `ttc_delays_streetcar`, `ttc_delays_bus`
@@ -109,7 +147,7 @@ Data Model
 - Legacy/optional unified table remains available for compatibility:
   - `ttc_delays` + `ttc_code_dictionary` (see `db/init/001_schema.sql`…`005_import_code_dictionary.sql`)
 
-SQL Usage
+## SQL Usage
 
 - Exploration: `sql/exploration/sample_queries.sql`
 - Reporting:
@@ -122,7 +160,7 @@ SQL Usage
 - Common psql params include: `sql/snippets/date_params.psql`
 - Folder overview: `sql/README.md`
 
-Repository Structure
+## Repository Structure
 
 - `etl_scripts/`: ETL and validation scripts
 - `data/raw/`: user‑provided raw inputs
@@ -134,7 +172,7 @@ Repository Structure
 - `web/`: Vite + React frontend consuming the API
 - `docker-compose.yml`: Postgres service (port 5433)
 
-Findings (Early)
+## Findings (Early)
 
 - Subway: more frequent but shorter delays
 - Bus: longer delays and larger headway gaps
@@ -142,13 +180,13 @@ Findings (Early)
 - Common causes: mechanical and signal issues; seasonal spikes for weather
 - Details: `docs/findings.md`
 
-Roadmap
+## Roadmap
 
 - Orchestration: schedule ETL with Airflow or Prefect
 - API: implemented (FastAPI + SQLAlchemy). Next: deploy and add caching/MTV refresh schedules
 - Forecasting: ML for route‑level delay probability
 
-Future: Python Visualizations (Matplotlib/Pandas)
+## Future: Python Visualizations (Matplotlib/Pandas)
 
 - Intent: Code‑centric visuals (no BI tools), suitable for quick EDA or lightweight reporting.
 - Data sources:
@@ -171,7 +209,7 @@ Future: Python Visualizations (Matplotlib/Pandas)
   ```
 - Potential charts: monthly counts by mode; top stations bar chart; cause distribution; peak‑hour histograms
 
-Generate Figures (script)
+## Generate Figures
 
 - Run (all modes): `python analysis/visualize.py`
 - Run (specific mode/year): `python analysis/visualize.py --mode subway --year 2024`
@@ -186,7 +224,7 @@ Generate Figures (script)
   - `peak_hour_<mode>_<year>.png` (or `<mode>_all.png` when `--all-years`)
   - `delay_hist_<mode>_<year>.png` (or `<mode>_all.png` when `--all-years`)
 
-License & Attribution
+## License & Attribution
 
 - Data: Toronto Open Data Portal (TTC delays).
 
